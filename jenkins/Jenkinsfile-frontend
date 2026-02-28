@@ -52,19 +52,19 @@ pipeline {
         }
 
         stage('📝 Update K8s Manifest') {
-            steps {
-                withCredentials([string(credentialsId: 'GH_USER', variable: 'GH_TOKEN')]) {
-                    sh '''
-                        git config user.email "jenkins@taskflow.com"
-                        git config user.name "Jenkins CI"
-                        sed -i "s|image: ${DOCKERHUB_USER}/taskflow-frontend:.*|image: ${DOCKERHUB_USER}/taskflow-frontend:${IMAGE_TAG}|" k8s_manifests/frontend/deploy.yaml
-                        git add k8s_manifests/frontend/deploy.yaml
-                        git commit -m "🚀 [CI] Update frontend image to ${IMAGE_TAG} [skip ci]"
-                        git push https://${GH_TOKEN}@github.com/kalpsoni18/three-tier-eks-project.git HEAD:main
-                    '''
-                }
-            }
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
+            sh """
+                git config user.email "jenkins@taskflow.com"
+                git config user.name "Jenkins CI"
+                sed -i "s|image: kalpsoni/taskflow-frontend:.*|image: kalpsoni/taskflow-frontend:${IMAGE_TAG}|" k8s_manifests/frontend/deploy.yaml
+                git add k8s_manifests/frontend/deploy.yaml
+                git commit -m "CI: Update frontend image to ${IMAGE_TAG}"
+                git push https://\${GH_TOKEN}@github.com/kalpsoni18/three-tier-eks-project.git HEAD:main
+            """
         }
+    }
+}
 
     }
 
