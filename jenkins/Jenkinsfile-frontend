@@ -1,21 +1,17 @@
 pipeline {
     agent any
-
     environment {
         DOCKERHUB_USER    = 'kalpsoni'
         FRONTEND_IMAGE    = "${DOCKERHUB_USER}/taskflow-frontend"
         IMAGE_TAG         = "${BUILD_NUMBER}"
     }
-
     stages {
-
         stage('📥 Checkout Code') {
             steps {
                 checkout scm
                 echo "✅ Code checked out — Build #${BUILD_NUMBER}"
             }
         }
-
         stage('🔍 Security Scan (Trivy)') {
             steps {
                 dir('Application-Code/frontend') {
@@ -27,7 +23,6 @@ pipeline {
                 }
             }
         }
-
         stage('🐳 Build Docker Image') {
             steps {
                 dir('Application-Code/frontend') {
@@ -36,7 +31,6 @@ pipeline {
                 }
             }
         }
-
         stage('🔐 Push to DockerHub') {
             steps {
                 withCredentials([usernamePassword(
@@ -50,24 +44,21 @@ pipeline {
                 }
             }
         }
-
         stage('📝 Update K8s Manifest') {
-    steps {
-        withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
-            sh """
-                git config user.email "jenkins@taskflow.com"
-                git config user.name "Jenkins CI"
-                sed -i "s|image: kalpsoni/taskflow-frontend:.*|image: kalpsoni/taskflow-frontend:${IMAGE_TAG}|" k8s_manifests/frontend/deploy.yaml
-                git add k8s_manifests/frontend/deploy.yaml
-                git commit -m "CI: Update frontend image to ${IMAGE_TAG}"
-                git push https://\${GH_TOKEN}@github.com/kalpsoni18/three-tier-eks-project.git HEAD:main
-            """
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
+                    sh """
+                        git config user.email "jenkins@taskflow.com"
+                        git config user.name "Jenkins CI"
+                        sed -i "s|image: kalpsoni/taskflow-frontend:.*|image: kalpsoni/taskflow-frontend:${IMAGE_TAG}|" k8s_manifests/frontend/deploy.yaml
+                        git add k8s_manifests/frontend/deploy.yaml
+                        git commit -m "CI: Update frontend image to ${IMAGE_TAG}"
+                        git push https://\${GH_TOKEN}@github.com/kalpsoni18/three-tier-eks-project.git HEAD:main
+                    """
+                }
+            }
         }
     }
-}
-
-    }
-
     post {
         success {
             echo "✅ Frontend pipeline succeeded — Image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
